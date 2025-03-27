@@ -43,7 +43,13 @@ function showMainPage(response, title, description, fileList) {
 function showPage(response, title, description, fileList) {
   var list = templateList(fileList);
   var template = templateHTML(title, list, `<h2>${title}</h2>${description}`,
-  `<a href="/create">create</a> <a href="/update?id=${title}">update</a> <a href="/delete">delete</a>`);
+  `<a href="/create">create</a>
+   <a href="/update?id=${title}">update</a>
+   <form action="delete_process" method="post">
+   <input type="hidden" name="id" value="${title}">
+   <input type="submit" value ="delete">
+   </form>
+  `);
   response.writeHead(200);
   response.end(template);
 }
@@ -133,12 +139,24 @@ var app = http.createServer(function (request, response) {
       var title = post.title;
       var description = post.description;
       fs.rename(`data/${id}`, `data/${title}`, function(err) {
-        fs.writeFile(`data/${title}`, description, 'utf8',
-        function(err) {
+        fs.writeFile(`data/${title}`, description, 'utf8', function(err) {
           response.writeHead(302, {Location: `/?id=${title}`}); // 302 = redirect
           response.end();
       });
     });
+  });
+} else if(pathname === '/delete_process') {
+  var body = '';
+  request.on('data', function(data) { // 콜백함수 실행될때마다 바디에다 데이터 +=
+      body += data;
+  });
+  request.on('end', function() {
+      var post = qs.parse(body);
+      var id = post.id;
+      fs.unlink(`data/${id}`, function(err) {
+        response.writeHead(302, {Location: `/`}); // 302 = redirect
+        response.end();
+      });
   });
 } else {
       response.writeHead(404);
